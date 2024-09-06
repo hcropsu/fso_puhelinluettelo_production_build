@@ -97,7 +97,7 @@ app.post('/api/persons', (req, res) => {
     return res.status(400).json({
       error: "name must not already exist in phonebook"
     })
-}
+  }
 
   const newId = generateRandomId()
   const newPerson = {
