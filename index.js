@@ -1,7 +1,9 @@
+require ('dotenv').config()
 const express = require('express')
 const cors = require('cors')
 const morgan = require('morgan')
 const app = express()
+const Person = require('./modules/person')
 
 app.use(cors())
 app.use(express.static('dist'))
@@ -52,7 +54,9 @@ app.get('/', (req, res) => {
 })
 
 app.get('/api/persons', (req, res) => {
-  res.json(persons)
+  Person.find({}).then(persons => {
+    res.json(persons)
+  })
 })
 
 {/* It seems chrome isn't including the 'Date' header field in the request.
@@ -117,20 +121,16 @@ app.post('/api/persons', (req, res) => {
     })
   }
 
-  if (persons.find(p => p.name === newName)) {
-    return res.status(400).json({
-      error: "name must not already exist in phonebook"
-    })
-  }
-
-  const newId = generateRandomId()
-  const newPerson = {
+  const newPerson = new Person ({
     name: newName,
     number: newNumber,
-    id: newId
-  }
-  persons = persons.concat(newPerson)
-  res.json(newPerson)
+  })
+
+  newPerson.save().then(result => {
+    console.log('saved new person', result)
+    res.json(result)
+  })
+
 })
 
 const PORT = process.env.PORT || 3001
