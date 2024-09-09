@@ -89,12 +89,15 @@ app.get('/api/persons/:id', (req, res) => {
 
 app.delete('/api/persons/:id', (req, res) => {
   const id = req.params.id
+  console.log('id of person to remove: ', id)
+  console.log('persons before deletion: ', persons)
   persons = persons.filter(p => p.id !== id)
+  console.log('persons after deletion', persons)
   res.status(204).end()
 })
 
 const generateRandomId = () => {
-  return Math.floor(Math.random() * 1000)
+  return Math.floor(Math.random() * 1000).toString()
 }
 
 app.post('/api/persons', (req, res) => {
