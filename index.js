@@ -94,6 +94,7 @@ app.post('/api/persons', (req, res, next) => {
   const body = req.body
   const newName = body.name
   const newNumber = body.number
+  console.log('newNumber', newNumber)
 
   if (!newName) {
     return res.status(400).json({
@@ -107,18 +108,33 @@ app.post('/api/persons', (req, res, next) => {
     })
   }
 
-  const newPerson = new Person ({
-    name: newName,
-    number: newNumber,
+  // To prevent manual POST reqs with same name or number first need to check
+  // if the name or number already exists in the db. The UI will stop POSTs with
+  // same name or number coming from there and will opt for PUT if number update is desired
+  // by the user but that left room for manual POSTs to contain existing field values
+  Person.find({
+    $or: [
+      { name: newName },
+      { number: newNumber}
+    ]
   })
-
-  newPerson.save()
     .then(result => {
-      console.log('saved new person', result)
-      res.json(result)
+      if (result) {
+        console.log('A person with the name or number already exists', result)
+        return res.status(400).json({ error: 'name or number already exists'})
+      }
+      const newPerson = new Person ({
+        name: newName,
+        number: newNumber,
+      })
+    
+      newPerson.save()
+        .then(result => {
+          console.log('saved new person', result)
+          res.json(result)
+        })
+        .catch(error => next(error))
     })
-    .catch(error => next(error))
-
 })
 
 app.put('/api/persons/:id', (req, res, next) => {
