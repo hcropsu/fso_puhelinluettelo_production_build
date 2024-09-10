@@ -96,12 +96,6 @@ app.post('/api/persons', (req, res, next) => {
   const newNumber = body.number
   console.log('newNumber', newNumber)
 
-  if (!newName) {
-    return res.status(400).json({
-      error: "missing name"
-    })
-  }
-
   if (!newNumber) {
     return res.status(400).json({
       error: "missing number"
@@ -119,7 +113,7 @@ app.post('/api/persons', (req, res, next) => {
     ]
   })
     .then(result => {
-      if (result) {
+      if (result.length > 0) {
         console.log('A person with the name or number already exists', result)
         return res.status(400).json({ error: 'name or number already exists'})
       }
@@ -145,7 +139,7 @@ app.put('/api/persons/:id', (req, res, next) => {
     number: body.number,
   }
 
-  Person.findByIdAndUpdate(idOfPersonToUpdate, personToUpdate, { new: true })
+  Person.findByIdAndUpdate(idOfPersonToUpdate, personToUpdate, { new: true, runValidators: true, context: 'query' })
     .then(updatedPerson => {
       res.json(updatedPerson)
     })
