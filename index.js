@@ -4,6 +4,8 @@ const cors = require('cors')
 const morgan = require('morgan')
 const app = express()
 const Person = require('./modules/person')
+const errorHandler = require('./modules/errorhandler')
+const unknownEndpoint = require('./modules/unknownendpoint')
 
 app.use(cors())
 app.use(express.static('dist'))
@@ -26,29 +28,8 @@ app.use(morgan(function (tokens, req, res) {
   ].join(' ')
 }))
 
-let persons = [
-  { 
-    "name": "Arto Hellas", 
-    "number": "040-123456",
-    "id": "1"
-  },
-  { 
-    "name": "Ada Lovelace", 
-    "number": "39-44-5323523",
-    "id": "2"
-  },
-  { 
-    "name": "Dan Abramov", 
-    "number": "12-43-234345",
-    "id": "3"
-  },
-  { 
-    "name": "Mary Poppendieck", 
-    "number": "39-23-6423122",
-    "id": "4"
-  }
-]
-
+// This returns the frontend html document 'index.html' since express
+// checks for it in the 'dist' folder thanks to 'app.use(express.static('dist))
 app.get('/', (req, res) => {
   res.send('<h1>Hello World</h1>')
 })
@@ -64,47 +45,52 @@ app.get('/api/persons', (req, res) => {
   the 'Date' header of the response is tricky. So the date is constructed
   artificially. */}
 
-app.get('/info', (req, res) => {
-  const numberOfPeople = persons.length
-  const numberOfPeopleString = String(numberOfPeople)
-  const dateNow = new Date().toString()
+app.get('/info', (req, res, next) => {
+  Person.find({})
+    .then(persons  => {
+      const numberOfPeople = persons.length
+      console.log('numberOfPeople', numberOfPeople)
+      const numberOfPeopleString = String(numberOfPeople)
+      const dateNow = new Date().toString()
   
-  if (numberOfPeople === 1) {
-    return (
+      if (numberOfPeople === 1) {
+        return (
+          res.send(
+            `Phonebook has contact info for ${numberOfPeopleString} person. <br>${dateNow}`
+          )
+        )
+      }
       res.send(
-        `Phonebook has contact info for ${numberOfPeopleString} person. <br>${dateNow}`
+        `Phonebook has contact info for ${numberOfPeopleString} people. <br>${dateNow}`
       )
-    )
-  }
-  res.send(
-    `Phonebook has contact info for ${numberOfPeopleString} people. <br>${dateNow}`
-  )
+    })
+    .catch(error => next(error))
 })
 
-app.get('/api/persons/:id', (req, res) => {
+app.get('/api/persons/:id', (req, res, next) => {
   const id = req.params.id
-  const person = persons.find(p => p.id === id)
-  if(person) {
-    res.json(person)
-  } else {
-    res.status(404).end()
-  }
+  Person.findById(id)
+    .then(person => {
+      if(person) {
+        res.json(person)
+      } else {
+        res.status(404).end()
+      }  
+    })
+    .catch(error => next(error))
+  
 })
 
-app.delete('/api/persons/:id', (req, res) => {
-  const id = req.params.id
-  console.log('id of person to remove: ', id)
-  console.log('persons before deletion: ', persons)
-  persons = persons.filter(p => p.id !== id)
-  console.log('persons after deletion', persons)
-  res.status(204).end()
+app.delete('/api/persons/:id', (req, res, next) => {
+  const idOfPersonToDelete = req.params.id
+  Person.findByIdAndDelete(idOfPersonToDelete)
+    .then(result => {
+      res.status(204).end()
+    })
+    .catch(error => next(error))
 })
 
-const generateRandomId = () => {
-  return Math.floor(Math.random() * 1000).toString()
-}
-
-app.post('/api/persons', (req, res) => {
+app.post('/api/persons', (req, res, next) => {
   const body = req.body
   const newName = body.name
   const newNumber = body.number
@@ -126,12 +112,32 @@ app.post('/api/persons', (req, res) => {
     number: newNumber,
   })
 
-  newPerson.save().then(result => {
-    console.log('saved new person', result)
-    res.json(result)
-  })
+  newPerson.save()
+    .then(result => {
+      console.log('saved new person', result)
+      res.json(result)
+    })
+    .catch(error => next(error))
 
 })
+
+app.put('/api/persons/:id', (req, res, next) => {
+  const body = req.body
+  const idOfPersonToUpdate = req.params.id
+  const personToUpdate = {
+    name: body.name,
+    number: body.number,
+  }
+
+  Person.findByIdAndUpdate(idOfPersonToUpdate, personToUpdate, { new: true })
+    .then(updatedPerson => {
+      res.json(updatedPerson)
+    })
+    .catch(error => next(error))
+})
+
+app.use(unknownEndpoint)
+app.use(errorHandler)
 
 const PORT = process.env.PORT || 3001
 app.listen(PORT, () => {
