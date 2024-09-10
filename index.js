@@ -11,9 +11,9 @@ app.use(cors())
 app.use(express.static('dist'))
 app.use(express.json())
 
-morgan.token('reqpostcontent', function(req, res) {
-  if (req.method === "POST") {
-    return JSON.stringify(req.body)  
+morgan.token('reqpostcontent', function(req) {
+  if (req.method === 'POST') {
+    return JSON.stringify(req.body)
   }
 })
 
@@ -52,7 +52,7 @@ app.get('/info', (req, res, next) => {
       console.log('numberOfPeople', numberOfPeople)
       const numberOfPeopleString = String(numberOfPeople)
       const dateNow = new Date().toString()
-  
+
       if (numberOfPeople === 1) {
         return (
           res.send(
@@ -75,16 +75,16 @@ app.get('/api/persons/:id', (req, res, next) => {
         res.json(person)
       } else {
         res.status(404).end()
-      }  
+      }
     })
     .catch(error => next(error))
-  
+
 })
 
 app.delete('/api/persons/:id', (req, res, next) => {
   const idOfPersonToDelete = req.params.id
   Person.findByIdAndDelete(idOfPersonToDelete)
-    .then(result => {
+    .then(() => {
       res.status(204).end()
     })
     .catch(error => next(error))
@@ -98,7 +98,7 @@ app.post('/api/persons', (req, res, next) => {
 
   if (!newNumber) {
     return res.status(400).json({
-      error: "missing number"
+      error: 'missing number'
     })
   }
 
@@ -109,19 +109,19 @@ app.post('/api/persons', (req, res, next) => {
   Person.find({
     $or: [
       { name: newName },
-      { number: newNumber}
+      { number: newNumber }
     ]
   })
     .then(result => {
       if (result.length > 0) {
         console.log('A person with the name or number already exists', result)
-        return res.status(400).json({ error: 'name or number already exists'})
+        return res.status(400).json({ error: 'name or number already exists' })
       }
       const newPerson = new Person ({
         name: newName,
         number: newNumber,
       })
-    
+
       newPerson.save()
         .then(result => {
           console.log('saved new person', result)
